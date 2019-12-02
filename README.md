@@ -6,8 +6,9 @@ LeSITA is a learnable proximal operator for solving l1-l1 minimization problem i
 ```
 Two types of implementation of LeSITA can be found in utils.py
 ```
-These implementations are first used as activation layers in a multimodal feed forward neural network presented in [[1]](#ref1) 
-and a deep multimodal CNN for image restoration introduced in[[3]](#ref3). 
+Unfolding a convolutional sparse coding using LeSITA proximal operator into the form a deep multimodal CNN for image restoration is first introduced in[[3]](#ref3). 
+DMSC network is also a multimodal feed forward neural networks for guided image super-resolution presented in [[1]](#ref1).
+
 
 
 ## References
