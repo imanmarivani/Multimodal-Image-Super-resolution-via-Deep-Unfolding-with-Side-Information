@@ -4,7 +4,7 @@ A tensorflow implementation of DMSC network in [[1]](#ref1)
 ## LeSITA proximal operator 
 LeSITA is a learnable proximal operator for solving l1-l1 minimization problem introduced in [[2]](#ref2). 
 ```
-Two types of implementation of LeSITA can be found in utils.py
+Two types of implementation for LeSITA activation can be found in utils.py
 ```
 Unfolding a convolutional multimodal sparse coding using LeSITA into the form of a deep multimodal CNN for image restoration is first introduced in [[3]](#ref3). 
 DMSC network is also a multimodal feed forward neural networks (based on sparse coding with side information) for guided image super-resolution presented in [[1]](#ref1).
