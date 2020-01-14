@@ -35,26 +35,27 @@ class DMSC():
 		        's' : tf.Variable(tf.random_normal([self.SC_size,self.SC_size], stddev = .1, dtype = tf.float32), name = 's'),
 		        'Dx' : tf.Variable(tf.random_normal([self.SC_size,self.D_size], stddev = .1, dtype = tf.float32), name = 'Dx'),
 		        'wG' : tf.Variable(tf.random_normal([self.input_patch_size,self.input_patch_size,self.D_size,1], stddev = .1, dtype = tf.float32), name = 'wG'),
-                'tetta1' : tf.Variable(self.tetta_init, name = 'tetta1'),
-                'tetta2' : tf.Variable(self.tetta_init, name = 'tetta2'),
+                	'tetta1' : tf.Variable(self.tetta_init, name = 'tetta1'),
+                	'tetta2' : tf.Variable(self.tetta_init, name = 'tetta2'),
                    
-                'wH2' : tf .Variable(tf.random_normal([self.input_patch_size,self.input_patch_size,1,self.patch_feature], stddev = .1, dtype = tf.float32), name = 'wH2'),
+                	'wH2' : tf .Variable(tf.random_normal([self.input_patch_size,self.input_patch_size,1,self.patch_feature], stddev = .1, dtype = tf.float32), name = 'wH2'),
 		        'wd2' : tf.Variable(tf.random_normal([self.patch_feature,self.SC_size], stddev = .1, dtype = tf.float32), name = 'wd2'),
 		        's2' : tf.Variable(tf.random_normal([self.SC_size,self.SC_size], stddev = .1, dtype = tf.float32), name = 's2'),
 		        'Dx2' : tf.Variable(tf.random_normal([self.SC_size,self.D_size], stddev = .1, dtype = tf.float32), name = 'Dx2'),
 		        'wG2' : tf.Variable(tf.random_normal([self.out_patch_size,self.out_patch_size,self.D_size,1], stddev = .1, dtype = tf.float32), name = 'wG2'),
-                'tetta12' : tf.Variable(self.tetta_init, name = 'tetta12'),
-                'tetta22' : tf.Variable(self.tetta_init, name = 'tetta22'),
+                	'tetta12' : tf.Variable(self.tetta_init, name = 'tetta12'),
+                	'tetta22' : tf.Variable(self.tetta_init, name = 'tetta22'),
            
-                'wH1' : tf .Variable(tf.random_normal([self.input_patch_size,self.input_patch_size,1,self.patch_feature], stddev = .1, dtype = tf.float32), name = 'wH1'),
+                	'wH1' : tf .Variable(tf.random_normal([self.input_patch_size,self.input_patch_size,1,self.patch_feature], stddev = .1, dtype = tf.float32), name = 'wH1'),
 		        'wd1' : tf.Variable(tf.random_normal([self.patch_feature,self.SC_size], stddev = .1, dtype = tf.float32), name = 'wd1'),
 		        's1' : tf.Variable(tf.random_normal([self.SC_size,self.SC_size], stddev = .1, dtype = tf.float32), name = 's1'),
-                'tetta11' : tf.Variable(self.tetta_init, name = 'tetta11'),
-                'tetta21' : tf.Variable(self.tetta_init, name = 'tetta21')
+                	'tetta11' : tf.Variable(self.tetta_init, name = 'tetta11'),
+                	'tetta21' : tf.Variable(self.tetta_init, name = 'tetta21')
+		# add variables here if needed
 		        }
       
         
-        self.pred = self.network()
+        self.pred = self.DMSC_Net()
         self.loss = tf.reduce_mean(tf.square(self.HR_image - self.pred))
 
         self.saver = tf.train.Saver()
@@ -95,12 +96,12 @@ class DMSC():
 
     def predict(self,imgl,imgh):
         print("***Super-resolving the test image***")
-        self.predict = self.network()
+        self.predict = self.DMSC_Net()
         g = self.sess.run(self.predict, feed_dict = {self.LR_image: imgl, self.HR_sideinfo: imgh})
         return g[0,:,:,0]
         
         
-    def network(self):
+    def DMSC_Net(self):
         eta = utils.proxLeSITA #LeSITA proximal operator for l1-l1 minimization 
 
         #Convolutional layer as patch extractor 
@@ -136,4 +137,47 @@ class DMSC():
         out = tf.nn.conv2d(hpatch2, self.weights['wG2'], strides = [1,1,1,1], padding = 'SAME')
 
         return out
+
+
+    def LMCSC_ResNet(self):
+        eta = utils.proxLeSITA 
+        conv1 = tf.nn.conv2d(self.HR_sideinfo, self.weights['we1'], strides = [1,1,1,1], padding = 'SAME')
+        zk0 = utils.ShLU(conv1, self.weights['tetta1'])
+        conv2 = tf.nn.conv2d(zk0, self.weights['wd1'], strides = [1,1,1,1], padding = 'SAME')
+        conv3 = tf.nn.conv2d(conv2, self.weights['we2'], strides = [1,1,1,1], padding  = 'SAME')
+        zk1 = utils.ShLU(zk0 - conv3 + conv1,self.weights['tetta2'])
+        conv4 = tf.nn.conv2d(zk1, self.weights['wd2'], strides = [1,1,1,1], padding = 'SAME')
+        conv5 = tf.nn.conv2d(conv4, self.weights['we3'], strides = [1,1,1,1], padding  = 'SAME')
+        zk2 = utils.ShLU(zk1 - conv5 + conv1,self.weights['tetta3'])
+        conv6 = tf.nn.conv2d(zk2, self.weights['wd3'], strides = [1,1,1,1], padding = 'SAME')
+        conv7 = tf.nn.conv2d(conv6, self.weights['we4'], strides = [1,1,1,1], padding  = 'SAME')
+        Z = utils.ShLU(zk2 - conv7 + conv1,self.weights['tetta4'])
+        
+        conv12 = tf.nn.conv2d(self.LR_image, self.weights['we12'], strides = [1,1,1,1], padding = 'SAME')
+        zk02 = eta(conv12, Z,self.weights['tetta12'])
+        conv22 = tf.nn.conv2d(zk02, self.weights['wd12'], strides = [1,1,1,1], padding = 'SAME')
+        conv32 = tf.nn.conv2d(conv22, self.weights['we22'], strides = [1,1,1,1], padding  = 'SAME')
+        zk12 = eta(zk02 - conv32 + conv12,Z,self.weights['tetta22'])
+        conv42 = tf.nn.conv2d(zk12, self.weights['wd22'], strides = [1,1,1,1], padding = 'SAME')
+        conv52 = tf.nn.conv2d(conv42, self.weights['we32'], strides = [1,1,1,1], padding  = 'SAME')
+        zk22 = eta(zk12 - conv52 + conv12,Z,self.weights['tetta32'])
+        conv62 = tf.nn.conv2d(zk22, self.weights['wd32'], strides = [1,1,1,1], padding = 'SAME')
+        conv72 = tf.nn.conv2d(conv62, self.weights['we42'], strides = [1,1,1,1], padding  = 'SAME')
+        U = eta(zk22 - conv72 + conv12,Z,self.weights['tetta42'])
+        
+        out = tf.nn.conv2d(U, self.weights['D'], strides = [1,1,1,1], padding = 'SAME')
+        
+        conv13 = tf.nn.conv2d(out, self.weights['we13'], strides = [1,1,1,1], padding = 'SAME')
+        zk03 = utils.ShLU(conv13, self.weights['tetta13'])
+        conv23 = tf.nn.relu(tf.nn.conv2d(zk03, self.weights['wd13'], strides = [1,1,1,1], padding = 'SAME'))
+        conv33 = tf.nn.conv2d(conv23, self.weights['we23'], strides = [1,1,1,1], padding  = 'SAME')
+        zk13 = utils.ShLU(zk03 - conv33 + conv13,self.weights['tetta23'])
+        conv43 = tf.nn.relu(tf.nn.conv2d(zk13, self.weights['wd23'], strides = [1,1,1,1], padding = 'SAME'))
+        conv53 = tf.nn.conv2d(conv43, self.weights['we33'], strides = [1,1,1,1], padding  = 'SAME')
+        U2 = utils.ShLU(zk13 - conv53 + conv13,self.weights['tetta33'])
+        
+        out1 = tf.nn.conv2d(U2, self.weights['D2'], strides = [1,1,1,1], padding = 'SAME')
+        out2 = out1 + self.LR_image
+
+        return out2
  
