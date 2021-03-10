@@ -1,0 +1,12 @@
+train_dir : "./ms44"
+scale : 4
+output_channels : 64
+batch_size : 16
+patch_size : 9
+patch_feature_size : 100
+input_channel : 1
+SC_size : 128
+side_info_itr : 2
+main_branch_itr : 2
+dictionary_size : 64
+epochs : 400
